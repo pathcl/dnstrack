@@ -5,8 +5,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/castai/promwrite"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/afpacket"
 	"github.com/google/gopacket/layers"
@@ -29,6 +31,36 @@ type PcapClient struct {
 	handlers    []*pcapHandler
 	common      *CommonClient
 	maxIfaceLen int
+}
+
+func writePrometheus(query string, responseTime time.Duration) {
+	client := promwrite.NewClient("http://news.luis.sh:8428/api/v1/write")
+	resp, err := client.Write(context.Background(), &promwrite.WriteRequest{
+		TimeSeries: []promwrite.TimeSeries{
+			{
+				Labels: []promwrite.Label{
+					{
+						Name:  "__name__",
+						Value: "dnstrack_response_time",
+					},
+					{
+						Name:  "domain",
+						Value: query,
+					},
+				},
+				Sample: promwrite.Sample{
+					Time:  time.Now(),
+					Value: responseTime.Seconds(),
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		log.Println("write prometheus failed", err)
+	}
+
+	log.Println("sending metrics", resp, query, responseTime.Seconds())
 }
 
 func NewPcapClient(opt Options) (*PcapClient, error) {

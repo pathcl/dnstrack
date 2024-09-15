@@ -108,9 +108,11 @@ func (c *CommonClient) Display(sp *SP, device string, ts time.Time) {
 	if ok {
 		c.response.Add(1)
 		fmt.Println(s)
+		writePrometheus(r.QuestionSec.Name, time.Since(t))
 	} else {
 		c.dropped.Add(1)
 	}
+
 }
 
 func (c *CommonClient) Stats() Stats {
